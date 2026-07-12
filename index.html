@@ -1,0 +1,955 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Dee's Recipe Finder</title>
+
+<!-- Home screen / installability -->
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="theme-color" content="#0E3B36">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Dee's Recipes">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500&family=Sora:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ocean-deep:#0E3B36;
+    --ocean-mid:#155850;
+    --ocean-line:#2A6E63;
+    --sun-gold:#F4A94F;
+    --papaya:#F2643B;
+    --coconut-cream:#FBF1DE;
+    --scotch-bonnet:#E4432B;
+    --plantain-green:#6FA96A;
+    --ink:#0E3B36;
+    --paper:#FFFCF5;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--ocean-deep);
+    color:var(--coconut-cream);
+    font-family:'Sora',sans-serif;
+    min-height:100vh;
+    position:relative;
+    overflow-x:hidden;
+  }
+
+  /* ---------- Spice dust scatter (signature element) ---------- */
+  .spice-dust{position:absolute;inset:0;pointer-events:none;overflow:hidden;z-index:0;}
+  .spice-dust span{
+    position:absolute;border-radius:50%;opacity:.55;
+  }
+
+  /* ---------- Hero ---------- */
+  .hero{
+    position:relative;
+    z-index:1;
+    padding:64px 24px 120px;
+    max-width:980px;
+    margin:0 auto;
+    text-align:center;
+  }
+  .eyebrow{
+    font-family:'Sora',sans-serif;
+    font-size:12px;
+    font-weight:700;
+    letter-spacing:.22em;
+    text-transform:uppercase;
+    color:var(--sun-gold);
+    margin-bottom:18px;
+  }
+  h1{
+    font-family:'Fraunces',serif;
+    font-weight:600;
+    font-size:clamp(40px,7vw,76px);
+    line-height:1.02;
+    margin:0 0 6px;
+    letter-spacing:-.01em;
+  }
+  h1 .accent{
+    position:relative;
+    display:inline-block;
+    color:var(--sun-gold);
+    font-style:italic;
+    font-weight:500;
+  }
+  h1 .accent svg{
+    position:absolute;
+    left:0; bottom:-10px;
+    width:100%; height:14px;
+  }
+  .hero p.sub{
+    font-size:17px;
+    line-height:1.6;
+    color:#D9EDE8;
+    max-width:520px;
+    margin:20px auto 0;
+    font-weight:400;
+  }
+
+  /* ---------- Search ---------- */
+  .search-wrap{
+    max-width:640px;
+    margin:44px auto 0;
+    position:relative;
+    z-index:1;
+  }
+  .search-box{
+    display:flex;
+    align-items:center;
+    background:var(--paper);
+    border-radius:999px;
+    padding:8px 8px 8px 26px;
+    box-shadow:0 18px 40px -14px rgba(0,0,0,.45);
+    border:1px solid rgba(255,255,255,.08);
+  }
+  .search-box input{
+    flex:1;
+    border:none;
+    outline:none;
+    background:transparent;
+    font-family:'Sora',sans-serif;
+    font-size:15.5px;
+    color:var(--ink);
+    padding:12px 8px;
+  }
+  .search-box input::placeholder{color:#8A9490;}
+  .search-box button{
+    border:none;
+    background:var(--papaya);
+    color:var(--paper);
+    font-family:'Sora',sans-serif;
+    font-weight:700;
+    font-size:14px;
+    padding:14px 24px;
+    border-radius:999px;
+    cursor:pointer;
+    transition:transform .15s ease, background .15s ease;
+    white-space:nowrap;
+  }
+  .search-box button:hover{background:var(--scotch-bonnet); transform:translateY(-1px);}
+  .search-box button:active{transform:translateY(0);}
+  .search-box button:disabled{background:#C9AF95; cursor:not-allowed; transform:none;}
+
+  .hint{
+    font-size:13px;
+    color:#9FC5BD;
+    margin-top:12px;
+    text-align:center;
+  }
+
+  /* ---------- Chips / toggles ---------- */
+  .controls{
+    display:flex;
+    flex-wrap:wrap;
+    gap:10px;
+    justify-content:center;
+    margin-top:26px;
+  }
+  .chip-group{
+    display:flex;
+    background:rgba(255,255,255,.06);
+    border:1px solid rgba(255,255,255,.14);
+    border-radius:999px;
+    padding:4px;
+    gap:2px;
+  }
+  .chip{
+    border:none;
+    background:transparent;
+    color:#CFE6E0;
+    font-family:'Sora',sans-serif;
+    font-size:13px;
+    font-weight:600;
+    padding:9px 16px;
+    border-radius:999px;
+    cursor:pointer;
+    transition:background .15s ease, color .15s ease;
+  }
+  .chip.active{
+    background:var(--sun-gold);
+    color:var(--ocean-deep);
+  }
+  .twist-toggle{
+    display:flex;
+    align-items:center;
+    gap:9px;
+    background:rgba(255,255,255,.06);
+    border:1px solid rgba(255,255,255,.14);
+    border-radius:999px;
+    padding:8px 16px 8px 14px;
+    cursor:pointer;
+    user-select:none;
+  }
+  .twist-toggle .dot{
+    width:34px; height:20px;
+    background:rgba(255,255,255,.25);
+    border-radius:999px;
+    position:relative;
+    transition:background .2s ease;
+    flex-shrink:0;
+  }
+  .twist-toggle .dot::after{
+    content:'';
+    position:absolute;
+    top:2px; left:2px;
+    width:16px; height:16px;
+    border-radius:50%;
+    background:var(--paper);
+    transition:transform .2s ease;
+  }
+  .twist-toggle.on .dot{background:var(--plantain-green);}
+  .twist-toggle.on .dot::after{transform:translateX(14px);}
+  .twist-toggle span.label{font-size:13px; font-weight:600; color:#CFE6E0;}
+  .twist-toggle span.emoji{font-size:15px;}
+
+  /* ---------- Wave divider ---------- */
+  .wave{
+    display:block;
+    width:100%;
+    height:70px;
+    margin-top:-1px;
+  }
+
+  /* ---------- Results section ---------- */
+  main{
+    background:var(--paper);
+    min-height:50vh;
+    position:relative;
+    z-index:1;
+    padding:0 24px 100px;
+  }
+  .results-inner{
+    max-width:760px;
+    margin:0 auto;
+  }
+
+  /* Empty state */
+  .empty-state{
+    text-align:center;
+    padding:70px 20px 40px;
+    color:#7A8F89;
+  }
+  .empty-state .icon{font-size:40px; margin-bottom:14px; display:block;}
+  .empty-state h3{
+    font-family:'Fraunces',serif;
+    font-weight:600;
+    font-size:24px;
+    color:var(--ocean-deep);
+    margin:0 0 8px;
+  }
+  .empty-state p{font-size:14.5px; line-height:1.6; max-width:380px; margin:0 auto;}
+
+  /* Loading state */
+  .loading-state{
+    text-align:center;
+    padding:80px 20px;
+  }
+  .pot{
+    width:74px; height:74px;
+    margin:0 auto 18px;
+    position:relative;
+  }
+  .pot svg{width:100%; height:100%;}
+  .steam{
+    position:absolute;
+    width:6px; height:6px;
+    border-radius:50%;
+    background:var(--sun-gold);
+    opacity:0;
+    animation:steam-rise 1.6s ease-in infinite;
+  }
+  .steam:nth-child(1){left:22px; animation-delay:0s;}
+  .steam:nth-child(2){left:36px; animation-delay:.4s;}
+  .steam:nth-child(3){left:50px; animation-delay:.8s;}
+  @keyframes steam-rise{
+    0%{opacity:0; transform:translateY(0) scale(.6);}
+    30%{opacity:.8;}
+    100%{opacity:0; transform:translateY(-34px) scale(1.3);}
+  }
+  .loading-state p{
+    font-family:'Fraunces',serif;
+    font-style:italic;
+    font-size:17px;
+    color:var(--ocean-mid);
+  }
+
+  /* Error state */
+  .error-state{
+    text-align:center;
+    padding:60px 20px;
+    color:var(--scotch-bonnet);
+  }
+  .error-state h3{font-family:'Fraunces',serif; margin:0 0 8px; color:var(--ocean-deep);}
+  .error-state p{color:#7A8F89; font-size:14px;}
+
+  /* Recipe card */
+  .recipe-card{
+    background:#fff;
+    border:1px solid #EDE6D4;
+    border-radius:22px;
+    padding:38px 34px 34px;
+    box-shadow:0 24px 60px -30px rgba(14,59,54,.25);
+    animation:card-in .45s cubic-bezier(.2,.7,.3,1);
+  }
+  @keyframes card-in{
+    from{opacity:0; transform:translateY(14px);}
+    to{opacity:1; transform:translateY(0);}
+  }
+  .recipe-tag{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    font-size:11.5px;
+    font-weight:700;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    padding:6px 12px;
+    border-radius:999px;
+    margin-bottom:16px;
+  }
+  .recipe-tag.original{background:#FDEBDD; color:var(--papaya);}
+  .recipe-tag.classic{background:#E6F1EC; color:var(--plantain-green);}
+  .recipe-title{
+    font-family:'Fraunces',serif;
+    font-weight:600;
+    font-size:clamp(26px,4vw,34px);
+    color:var(--ocean-deep);
+    margin:0 0 10px;
+    line-height:1.1;
+  }
+  .recipe-desc{
+    font-size:15px;
+    line-height:1.65;
+    color:#4E635D;
+    margin:0 0 22px;
+  }
+  .twist-note{
+    display:flex;
+    gap:10px;
+    background:#FBF6E9;
+    border:1px dashed var(--sun-gold);
+    border-radius:14px;
+    padding:14px 16px;
+    margin-bottom:24px;
+    font-size:13.5px;
+    line-height:1.55;
+    color:#6B5426;
+  }
+  .twist-note .emoji{font-size:17px; flex-shrink:0;}
+
+  .meta-row{
+    display:flex;
+    flex-wrap:wrap;
+    gap:22px;
+    padding:16px 0;
+    border-top:1px solid #EDE6D4;
+    border-bottom:1px solid #EDE6D4;
+    margin-bottom:26px;
+  }
+  .meta-item{font-size:13px; color:#6E837D;}
+  .meta-item b{display:block; font-family:'Fraunces',serif; font-size:17px; color:var(--ocean-deep); font-weight:600;}
+
+  .servings-control{
+    display:flex; align-items:center; gap:12px;
+  }
+  .servings-control button{
+    width:28px; height:28px;
+    border-radius:50%;
+    border:1px solid #D8CFB4;
+    background:#fff;
+    color:var(--ocean-deep);
+    font-size:16px;
+    cursor:pointer;
+    line-height:1;
+  }
+  .servings-control button:hover{background:var(--coconut-cream);}
+
+  .recipe-body{
+    display:grid;
+    grid-template-columns:1fr 1.5fr;
+    gap:36px;
+  }
+  @media (max-width:600px){
+    .recipe-body{grid-template-columns:1fr;}
+    .recipe-card{padding:28px 22px 26px;}
+  }
+  .section-label{
+    font-size:11.5px;
+    font-weight:700;
+    letter-spacing:.16em;
+    text-transform:uppercase;
+    color:var(--papaya);
+    margin:0 0 14px;
+  }
+  .ingredients-list{list-style:none; margin:0; padding:0;}
+  .ingredients-list li{
+    display:flex;
+    justify-content:space-between;
+    gap:10px;
+    font-size:14.5px;
+    color:#324944;
+    padding:9px 0;
+    border-bottom:1px solid #F3EEDF;
+  }
+  .ingredients-list li .amt{color:var(--ocean-mid); font-weight:600; flex-shrink:0;}
+
+  .steps-list{list-style:none; margin:0; padding:0; counter-reset:step;}
+  .steps-list li{
+    counter-increment:step;
+    display:flex;
+    gap:14px;
+    font-size:14.5px;
+    line-height:1.6;
+    color:#324944;
+    margin-bottom:18px;
+  }
+  .steps-list li::before{
+    content:counter(step);
+    flex-shrink:0;
+    width:26px; height:26px;
+    border-radius:50%;
+    background:var(--ocean-deep);
+    color:var(--coconut-cream);
+    font-family:'Sora',sans-serif;
+    font-weight:700;
+    font-size:12.5px;
+    display:flex; align-items:center; justify-content:center;
+  }
+
+  .card-actions{
+    display:flex;
+    gap:12px;
+    margin-top:30px;
+    flex-wrap:wrap;
+  }
+  .btn-secondary{
+    border:1px solid #D8CFB4;
+    background:#fff;
+    color:var(--ocean-deep);
+    font-family:'Sora',sans-serif;
+    font-weight:700;
+    font-size:13.5px;
+    padding:12px 20px;
+    border-radius:999px;
+    cursor:pointer;
+    transition:background .15s ease;
+  }
+  .btn-secondary:hover{background:var(--coconut-cream);}
+  .btn-primary{
+    border:none;
+    background:var(--ocean-deep);
+    color:var(--coconut-cream);
+    font-family:'Sora',sans-serif;
+    font-weight:700;
+    font-size:13.5px;
+    padding:12px 22px;
+    border-radius:999px;
+    cursor:pointer;
+    transition:background .15s ease;
+  }
+  .btn-primary:hover{background:var(--ocean-mid);}
+
+  footer{
+    text-align:center;
+    padding:28px 20px 40px;
+    font-size:12.5px;
+    color:#9FC5BD;
+    position:relative;
+    z-index:1;
+  }
+
+  /* ---------- Saved recipes button + panel ---------- */
+  .saved-btn{
+    position:fixed;
+    top:20px; right:20px;
+    z-index:20;
+    display:flex;
+    align-items:center;
+    gap:8px;
+    background:rgba(255,255,255,.08);
+    border:1px solid rgba(255,255,255,.18);
+    color:var(--coconut-cream);
+    font-family:'Sora',sans-serif;
+    font-weight:600;
+    font-size:13px;
+    padding:10px 16px;
+    border-radius:999px;
+    cursor:pointer;
+    backdrop-filter:blur(6px);
+  }
+  .saved-btn:hover{background:rgba(255,255,255,.15);}
+  .saved-btn .count{
+    background:var(--sun-gold);
+    color:var(--ocean-deep);
+    font-size:11px;
+    font-weight:800;
+    min-width:18px; height:18px;
+    padding:0 5px;
+    border-radius:999px;
+    display:flex; align-items:center; justify-content:center;
+  }
+
+  .saved-overlay{
+    position:fixed; inset:0;
+    background:rgba(14,59,54,.55);
+    z-index:29;
+    opacity:0;
+    pointer-events:none;
+    transition:opacity .2s ease;
+  }
+  .saved-overlay.open{opacity:1; pointer-events:auto;}
+
+  .saved-panel{
+    position:fixed;
+    top:0; right:0; bottom:0;
+    width:min(380px, 88vw);
+    background:var(--paper);
+    z-index:30;
+    box-shadow:-20px 0 50px -20px rgba(0,0,0,.4);
+    transform:translateX(100%);
+    transition:transform .25s ease;
+    display:flex;
+    flex-direction:column;
+    padding:28px 22px;
+  }
+  .saved-panel.open{transform:translateX(0);}
+  .saved-panel-head{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    margin-bottom:20px;
+  }
+  .saved-panel-head h3{
+    font-family:'Fraunces',serif;
+    font-size:22px;
+    color:var(--ocean-deep);
+    margin:0;
+  }
+  .saved-panel-close{
+    border:none;
+    background:var(--coconut-cream);
+    color:var(--ocean-deep);
+    width:30px; height:30px;
+    border-radius:50%;
+    cursor:pointer;
+    font-size:15px;
+  }
+  .saved-list{overflow-y:auto; flex:1; display:flex; flex-direction:column; gap:12px;}
+  .saved-empty{
+    color:#8A9490;
+    font-size:14px;
+    text-align:center;
+    padding:40px 10px;
+    line-height:1.6;
+  }
+  .saved-item{
+    border:1px solid #EDE6D4;
+    border-radius:14px;
+    padding:14px 16px;
+    cursor:pointer;
+    transition:border-color .15s ease, background .15s ease;
+  }
+  .saved-item:hover{border-color:var(--sun-gold); background:#FFFCF2;}
+  .saved-item-title{
+    font-family:'Fraunces',serif;
+    font-weight:600;
+    font-size:16px;
+    color:var(--ocean-deep);
+    margin:0 0 4px;
+  }
+  .saved-item-meta{
+    font-size:12px;
+    color:#8A9490;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:10px;
+  }
+  .saved-item-remove{
+    border:none;
+    background:transparent;
+    color:var(--scotch-bonnet);
+    font-size:12px;
+    font-weight:700;
+    cursor:pointer;
+    padding:2px 4px;
+  }
+
+  .save-icon-btn.saved{background:var(--plantain-green); color:#fff; border-color:var(--plantain-green);}
+
+  /* ---------- Print ---------- */
+  @media print{
+    body{background:#fff; color:#000;}
+    .spice-dust, .hero, .wave, footer, .saved-btn, .saved-overlay, .saved-panel, .card-actions{
+      display:none !important;
+    }
+    main{padding:0; background:#fff;}
+    .recipe-card{
+      box-shadow:none;
+      border:none;
+      padding:0;
+      animation:none;
+    }
+    .recipe-body{grid-template-columns:1fr 1.5fr;}
+  }
+</style>
+</head>
+<body>
+
+<div class="spice-dust" id="spiceDust"></div>
+
+<button class="saved-btn" id="savedBtn">
+  🔖 Saved <span class="count" id="savedCount">0</span>
+</button>
+<div class="saved-overlay" id="savedOverlay"></div>
+<div class="saved-panel" id="savedPanel">
+  <div class="saved-panel-head">
+    <h3>Saved recipes</h3>
+    <button class="saved-panel-close" id="savedPanelClose">&times;</button>
+  </div>
+  <div class="saved-list" id="savedList">
+    <p class="saved-empty">Nothing saved yet. Find a recipe you like and hit "Save" to keep it here for this session.</p>
+  </div>
+</div>
+
+<section class="hero">
+  <div class="eyebrow">Caribbean-Inspired &middot; AI Recipe Agent</div>
+  <h1>Dee's <span class="accent">Recipe<svg viewBox="0 0 200 14" preserveAspectRatio="none"><path d="M2 10 Q 50 2, 100 8 T 198 6" stroke="#F4A94F" stroke-width="3" fill="none" stroke-linecap="round"/></svg></span> Finder</h1>
+  <p class="sub">Tell me what's in your kitchen, or what you're craving &mdash; I'll cook up something original, or bring you a classic, with an island twist if you want one.</p>
+
+  <div class="search-wrap">
+    <div class="search-box">
+      <input id="queryInput" type="text" placeholder="e.g. coconut milk, red beans, callaloo &mdash; or 'garnaches'" />
+      <button id="searchBtn">Find a recipe</button>
+    </div>
+    <div class="hint">Search by ingredients you have, or a dish, cuisine, or craving.</div>
+  </div>
+
+  <div class="controls">
+    <div class="chip-group" id="modeGroup">
+      <button class="chip active" data-mode="either">Either</button>
+      <button class="chip" data-mode="original">Original creation</button>
+      <button class="chip" data-mode="classic">Classic dish</button>
+    </div>
+    <div class="twist-toggle" id="twistToggle">
+      <span class="emoji">🌶️</span>
+      <span class="label">Caribbean twist</span>
+      <div class="dot"></div>
+    </div>
+  </div>
+</section>
+
+<svg class="wave" viewBox="0 0 1440 70" preserveAspectRatio="none">
+  <path d="M0,40 C240,80 480,0 720,30 C960,60 1200,10 1440,40 L1440,70 L0,70 Z" fill="#FFFCF5"/>
+</svg>
+
+<main>
+  <div class="results-inner" id="resultsArea">
+    <div class="empty-state">
+      <span class="icon">🍲</span>
+      <h3>Your kitchen, your call</h3>
+      <p>Type a few ingredients or a dish you're craving above, then hit "Find a recipe" to get started.</p>
+    </div>
+  </div>
+</main>
+
+<footer>Dee's Recipe Finder &mdash; original creations &amp; classic dishes, Caribbean-inspired.</footer>
+
+<script>
+  // ---------- Signature spice-dust background ----------
+  (function(){
+    const colors = ['#F4A94F','#F2643B','#6FA96A','#FFFFFF'];
+    const wrap = document.getElementById('spiceDust');
+    const count = 46;
+    for(let i=0;i<count;i++){
+      const s = document.createElement('span');
+      const size = 2 + Math.random()*4;
+      s.style.width = size+'px';
+      s.style.height = size+'px';
+      s.style.left = Math.random()*100+'%';
+      s.style.top = Math.random()*60+'%';
+      s.style.background = colors[Math.floor(Math.random()*colors.length)];
+      s.style.opacity = (0.15 + Math.random()*0.4).toFixed(2);
+      wrap.appendChild(s);
+    }
+  })();
+
+  // ---------- State ----------
+  let mode = 'either';
+  let caribbeanTwist = false;
+  let currentRecipe = null;
+  let baseServings = 4;
+  let currentServings = 4;
+  let savedRecipes = []; // in-memory only for this session: { id, recipe, servings }
+
+  const modeGroup = document.getElementById('modeGroup');
+  const twistToggle = document.getElementById('twistToggle');
+  const queryInput = document.getElementById('queryInput');
+  const searchBtn = document.getElementById('searchBtn');
+  const resultsArea = document.getElementById('resultsArea');
+  const savedBtn = document.getElementById('savedBtn');
+  const savedOverlay = document.getElementById('savedOverlay');
+  const savedPanel = document.getElementById('savedPanel');
+  const savedPanelClose = document.getElementById('savedPanelClose');
+  const savedList = document.getElementById('savedList');
+  const savedCount = document.getElementById('savedCount');
+
+  function openSavedPanel(){
+    savedOverlay.classList.add('open');
+    savedPanel.classList.add('open');
+  }
+  function closeSavedPanel(){
+    savedOverlay.classList.remove('open');
+    savedPanel.classList.remove('open');
+  }
+  savedBtn.addEventListener('click', openSavedPanel);
+  savedPanelClose.addEventListener('click', closeSavedPanel);
+  savedOverlay.addEventListener('click', closeSavedPanel);
+
+  function isRecipeSaved(recipe){
+    if(!recipe) return false;
+    return savedRecipes.some(s => s.recipe.title === recipe.title);
+  }
+
+  function renderSavedList(){
+    savedCount.textContent = savedRecipes.length;
+    if(savedRecipes.length === 0){
+      savedList.innerHTML = '<p class="saved-empty">Nothing saved yet. Find a recipe you like and hit "Save" to keep it here for this session.</p>';
+      return;
+    }
+    savedList.innerHTML = savedRecipes.map(s => `
+      <div class="saved-item" data-id="${s.id}">
+        <p class="saved-item-title">${escapeHtml(s.recipe.title)}</p>
+        <div class="saved-item-meta">
+          <span>${s.recipe.type === 'original' ? '✨ Original' : '📖 Classic'} &middot; serves ${s.servings}</span>
+          <button class="saved-item-remove" data-remove="${s.id}">Remove</button>
+        </div>
+      </div>
+    `).join('');
+
+    savedList.querySelectorAll('.saved-item').forEach(el => {
+      el.addEventListener('click', (e) => {
+        if(e.target.closest('[data-remove]')) return;
+        const id = el.dataset.id;
+        const entry = savedRecipes.find(s => String(s.id) === id);
+        if(entry){
+          currentRecipe = entry.recipe;
+          baseServings = entry.recipe.servings || 4;
+          currentServings = entry.servings;
+          renderRecipe(currentRecipe);
+          closeSavedPanel();
+          window.scrollTo({top: document.querySelector('.wave').offsetTop, behavior:'smooth'});
+        }
+      });
+    });
+    savedList.querySelectorAll('[data-remove]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const id = btn.dataset.remove;
+        savedRecipes = savedRecipes.filter(s => String(s.id) !== id);
+        renderSavedList();
+        if(currentRecipe) renderRecipe(currentRecipe);
+      });
+    });
+  }
+
+  function toggleSaveCurrent(){
+    if(!currentRecipe) return;
+    if(isRecipeSaved(currentRecipe)){
+      savedRecipes = savedRecipes.filter(s => s.recipe.title !== currentRecipe.title);
+    }else{
+      savedRecipes.push({ id: Date.now(), recipe: currentRecipe, servings: currentServings });
+    }
+    renderSavedList();
+    renderRecipe(currentRecipe);
+  }
+
+  modeGroup.addEventListener('click', (e) => {
+    const btn = e.target.closest('.chip');
+    if(!btn) return;
+    modeGroup.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+    btn.classList.add('active');
+    mode = btn.dataset.mode;
+  });
+
+  twistToggle.addEventListener('click', () => {
+    caribbeanTwist = !caribbeanTwist;
+    twistToggle.classList.toggle('on', caribbeanTwist);
+  });
+
+  searchBtn.addEventListener('click', runSearch);
+  queryInput.addEventListener('keydown', (e) => {
+    if(e.key === 'Enter') runSearch();
+  });
+
+  function loadingMarkup(){
+    return `
+      <div class="loading-state">
+        <div class="pot">
+          <span class="steam"></span><span class="steam"></span><span class="steam"></span>
+          <svg viewBox="0 0 74 74" fill="none">
+            <ellipse cx="37" cy="26" rx="26" ry="7" fill="#155850"/>
+            <path d="M11 26 L15 56 Q37 64 59 56 L63 26" fill="#0E3B36"/>
+            <ellipse cx="37" cy="26" rx="22" ry="5" fill="#6FA96A"/>
+            <rect x="4" y="22" width="10" height="6" rx="3" fill="#0E3B36"/>
+            <rect x="60" y="22" width="10" height="6" rx="3" fill="#0E3B36"/>
+          </svg>
+        </div>
+        <p>Simmering up some ideas&hellip;</p>
+      </div>`;
+  }
+
+  function errorMarkup(msg){
+    return `
+      <div class="error-state">
+        <h3>Something didn't cook right</h3>
+        <p>${msg}</p>
+      </div>`;
+  }
+
+  async function runSearch(){
+    const query = queryInput.value.trim();
+    if(!query){
+      queryInput.focus();
+      return;
+    }
+    searchBtn.disabled = true;
+    searchBtn.textContent = 'Cooking...';
+    resultsArea.innerHTML = loadingMarkup();
+
+    try{
+      const recipe = await generateRecipe(query, mode, caribbeanTwist);
+      currentRecipe = recipe;
+      baseServings = recipe.servings || 4;
+      currentServings = baseServings;
+      renderRecipe(recipe);
+    }catch(err){
+      console.error('Recipe generation error:', err);
+      resultsArea.innerHTML = errorMarkup(err && err.message ? err.message : "I couldn't put that recipe together. Please try again, maybe with a slightly different search.");
+    }finally{
+      searchBtn.disabled = false;
+      searchBtn.textContent = 'Find a recipe';
+    }
+  }
+
+  async function generateRecipe(query, mode, twist){
+    const response = await fetch("/.netlify/functions/generate-recipe", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ query, mode, twist })
+    });
+
+    const data = await response.json().catch(() => null);
+
+    if(!response.ok){
+      const serverMsg = data && data.error ? data.error : ("Request failed with status " + response.status);
+      throw new Error(serverMsg);
+    }
+    if(!data || !data.ingredients || !data.steps || !data.title){
+      throw new Error("Malformed recipe object");
+    }
+    return data;
+  }
+
+  function fmtAmount(n){
+    if(Math.abs(n - Math.round(n)) < 0.01) return String(Math.round(n));
+    const rounded = Math.round(n * 4) / 4;
+    const whole = Math.floor(rounded);
+    const frac = rounded - whole;
+    const fracMap = {0.25:'¼', 0.5:'½', 0.75:'¾'};
+    if(fracMap[frac]) return (whole > 0 ? whole+' ' : '') + fracMap[frac];
+    return String(Math.round(rounded * 100) / 100);
+  }
+
+  function renderRecipe(recipe){
+    const scale = currentServings / baseServings;
+    const tagClass = recipe.type === 'original' ? 'original' : 'classic';
+    const tagLabel = recipe.type === 'original' ? '✨ Original creation' : '📖 Classic dish';
+    const saved = isRecipeSaved(recipe);
+
+    const twistHtml = recipe.caribbeanTwist
+      ? `<div class="twist-note"><span class="emoji">🌴</span><div><b>Island twist:</b> ${escapeHtml(recipe.caribbeanTwist)}</div></div>`
+      : '';
+
+    const ingredientsHtml = recipe.ingredients.map(ing => {
+      const scaledAmt = fmtAmount((ing.amount || 0) * scale);
+      const unit = ing.unit ? ' ' + escapeHtml(ing.unit) : '';
+      return `<li><span>${escapeHtml(ing.name)}</span><span class="amt">${scaledAmt}${unit}</span></li>`;
+    }).join('');
+
+    const stepsHtml = recipe.steps.map(s => `<li>${escapeHtml(s)}</li>`).join('');
+
+    resultsArea.innerHTML = `
+      <div class="recipe-card">
+        <span class="recipe-tag ${tagClass}">${tagLabel}</span>
+        <h2 class="recipe-title">${escapeHtml(recipe.title)}</h2>
+        <p class="recipe-desc">${escapeHtml(recipe.description || '')}</p>
+        ${twistHtml}
+        <div class="meta-row">
+          <div class="meta-item"><b>${recipe.prepTime || '—'}</b>Prep time</div>
+          <div class="meta-item"><b>${recipe.cookTime || '—'}</b>Cook time</div>
+          <div class="meta-item">
+            <div class="servings-control">
+              <button id="servDown" aria-label="Decrease servings">&minus;</button>
+              <b id="servCount">${currentServings}</b>
+              <button id="servUp" aria-label="Increase servings">&plus;</button>
+            </div>
+            Servings
+          </div>
+        </div>
+        <div class="recipe-body">
+          <div>
+            <p class="section-label">Ingredients</p>
+            <ul class="ingredients-list" id="ingList">${ingredientsHtml}</ul>
+          </div>
+          <div>
+            <p class="section-label">Steps</p>
+            <ol class="steps-list">${stepsHtml}</ol>
+          </div>
+        </div>
+        <div class="card-actions">
+          <button class="btn-primary" id="anotherBtn">Make another</button>
+          <button class="btn-secondary" id="newSearchBtn">New search</button>
+          <button class="btn-secondary save-icon-btn ${saved ? 'saved' : ''}" id="saveBtn">${saved ? '✓ Saved' : '🔖 Save recipe'}</button>
+          <button class="btn-secondary" id="printBtn">🖨️ Print</button>
+        </div>
+      </div>
+    `;
+
+    document.getElementById('servDown').addEventListener('click', () => {
+      if(currentServings > 1){ currentServings--; renderRecipe(currentRecipe); }
+    });
+    document.getElementById('servUp').addEventListener('click', () => {
+      currentServings++; renderRecipe(currentRecipe);
+    });
+    document.getElementById('anotherBtn').addEventListener('click', () => {
+      runSearch();
+    });
+    document.getElementById('newSearchBtn').addEventListener('click', () => {
+      queryInput.value = '';
+      queryInput.focus();
+      window.scrollTo({top:0, behavior:'smooth'});
+    });
+    document.getElementById('saveBtn').addEventListener('click', toggleSaveCurrent);
+    document.getElementById('printBtn').addEventListener('click', () => {
+      window.print();
+    });
+  }
+
+  function escapeHtml(str){
+    const div = document.createElement('div');
+    div.textContent = str == null ? '' : String(str);
+    return div.innerHTML;
+  }
+</script>
+</body>
+</html>
