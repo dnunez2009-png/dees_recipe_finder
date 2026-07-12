@@ -841,15 +841,68 @@
     }
   }
 
-  async function generateRecipe(query, mode, twist){
-    const response = await fetch("/.netlify/functions/generate-recipe", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ query, mode, twist })
-    });
+  function buildSystemPrompt(mode, twist){
+    const modeInstruction = mode === 'original'
+      ? "You must invent a brand-new ORIGINAL recipe (not a well-known existing dish). Set type to 'original'."
+      : mode === 'classic'
+      ? "You must draw on a real, well-known existing recipe/dish that matches the request as closely as possible. Set type to 'classic'."
+      : "Decide whichever fits best: either invent an original recipe, or draw on a real well-known dish. Set type accordingly.";
+
+    const twistInstruction = twist
+      ? "Also include a 'caribbeanTwist' field: 1-2 sentences suggesting a Caribbean/Belizean-inspired ingredient swap or addition (e.g. coconut milk, scotch bonnet pepper, plantain, cassava, culantro, pimento) that would give this dish an island flavor, even if the base dish is not Caribbean."
+      : "Do not include a 'caribbeanTwist' field.";
+
+    return `You are a recipe-generating assistant for "Dee's Recipe Finder", a Caribbean-inspired cooking app. Respond with ONLY a raw JSON object, no markdown fences, no preamble, no commentary. The JSON object must have exactly this shape:
+{
+  "title": string,
+  "type": "original" | "classic",
+  "description": string (1-2 sentences, appetizing, plain language),
+  "caribbeanTwist": string (optional, only if requested),
+  "servings": number (integer, typically 2-6),
+  "prepTime": string (e.g. "15 min"),
+  "cookTime": string (e.g. "25 min"),
+  "ingredients": [ { "amount": number, "unit": string or null, "name": string } ],
+  "steps": [ string, string, ... ]
+}
+Rules: ${modeInstruction} ${twistInstruction}
+Keep ingredients between 6 and 12 items. Keep steps between 4 and 8 items, each step a clear, complete sentence. Use realistic amounts for the given servings. Units should be simple strings like "cup", "tbsp", "tsp", "g", "oz", "lb", "clove", "can", or null for whole countable items (fold the counting word into the name, e.g. name: "garlic cloves"). Keep the whole response concise so it fits comfortably in the response budget. Do not include any text outside the JSON object.`;
+  }
+
+  function parseRecipeText(rawText){
+    const cleaned = rawText.replace(/```json|```/g, '').trim();
+    const parsed = JSON.parse(cleaned);
+    if(!parsed.ingredients || !parsed.steps || !parsed.title){
+      throw new Error("Malformed recipe object");
+    }
+    return parsed;
+  }
+
+  // Path A: secure server-side call via a Netlify Function (used once deployed with
+  // ANTHROPIC_API_KEY set in Netlify). Keeps the API key off the client entirely.
+  async function generateViaBackend(query, mode, twist){
+    let response;
+    try{
+      response = await fetch("/.netlify/functions/generate-recipe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query, mode, twist })
+      });
+    }catch(networkErr){
+      // Couldn't reach the endpoint at all (e.g. no backend at this URL).
+      const notFound = new Error("BACKEND_NOT_FOUND");
+      notFound.isBackendMissing = true;
+      throw notFound;
+    }
+
+    if(response.status === 404){
+      // No backend deployed at this URL (e.g. running inside the Claude.ai preview,
+      // or hosted somewhere without the function). Signal the caller to fall back.
+      const notFound = new Error("BACKEND_NOT_FOUND");
+      notFound.isBackendMissing = true;
+      throw notFound;
+    }
 
     const data = await response.json().catch(() => null);
-
     if(!response.ok){
       const serverMsg = data && data.error ? data.error : ("Request failed with status " + response.status);
       throw new Error(serverMsg);
@@ -858,6 +911,50 @@
       throw new Error("Malformed recipe object");
     }
     return data;
+  }
+
+  // Path B: direct call to the Anthropic API. Only succeeds inside Claude.ai's own
+  // preview environment, where the request is authenticated automatically.
+  async function generateViaDirectCall(query, mode, twist){
+    const systemPrompt = buildSystemPrompt(mode, twist);
+
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-6",
+        max_tokens: 1000,
+        system: systemPrompt,
+        messages: [
+          { role: "user", content: `Find or create a recipe for: "${query}"` }
+        ]
+      })
+    });
+
+    if(!response.ok){
+      throw new Error("API request failed with status " + response.status);
+    }
+
+    const data = await response.json();
+    const textBlock = (data.content || []).find(b => b.type === 'text');
+    if(!textBlock){
+      throw new Error("No text content in response");
+    }
+    return parseRecipeText(textBlock.text);
+  }
+
+  async function generateRecipe(query, mode, twist){
+    try{
+      return await generateViaBackend(query, mode, twist);
+    }catch(err){
+      if(err && err.isBackendMissing){
+        // Fall back automatically: no backend at this URL, try the direct call instead.
+        return await generateViaDirectCall(query, mode, twist);
+      }
+      // Backend exists but returned a real error (e.g. missing API key on Netlify) —
+      // surface that directly rather than masking it with a fallback attempt.
+      throw err;
+    }
   }
 
   function fmtAmount(n){
