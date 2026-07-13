@@ -72,7 +72,7 @@ Keep ingredients between 6 and 12 items. Keep steps between 4 and 8 items, each 
         "anthropic-version": "2023-06-01",
       },
       body: JSON.stringify({
-        model: "claude-sonnet-4-6",
+        model: "claude-sonnet-5",
         max_tokens: 1000,
         system: systemPrompt,
         messages: [{ role: "user", content: `Find or create a recipe for: "${query}"` }],
