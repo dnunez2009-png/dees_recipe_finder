@@ -904,7 +904,10 @@ Keep ingredients between 6 and 12 items. Keep steps between 4 and 8 items, each 
 
     const data = await response.json().catch(() => null);
     if(!response.ok){
-      const serverMsg = data && data.error ? data.error : ("Request failed with status " + response.status);
+      let serverMsg = data && data.error ? data.error : ("Request failed with status " + response.status);
+      if(data && data.detail){
+        serverMsg += " (" + String(data.detail).slice(0, 200) + ")";
+      }
       throw new Error(serverMsg);
     }
     if(!data || !data.ingredients || !data.steps || !data.title){
